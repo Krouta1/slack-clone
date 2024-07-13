@@ -17,10 +17,17 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { MdOutlineAutoAwesome } from 'react-icons/md';
+import { useState } from 'react';
+import { Provider } from '@supabase/supabase-js';
+import { supabaseBrowserClient } from '@/supabase/supabaseClient';
 
 const AuthPage = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const formSchema = z.object({
-    email: z.string().email().min(5, { message: 'Email is too short' }),
+    email: z
+      .string()
+      .email({ message: 'Please provide a valid email.' })
+      .min(5, { message: 'Email is too short' }),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -33,6 +40,18 @@ const AuthPage = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log(values);
   };
+
+  async function socialAuth(provider: Provider) {
+    setIsAuthenticated(true);
+    const { error } = await supabaseBrowserClient.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    setIsAuthenticated(false);
+  }
+
   return (
     <div className=' min-h-screen p-5 grid text-center place-content-center bg-white '>
       <div className=' max-w-[450px]'>
@@ -52,7 +71,12 @@ const AuthPage = () => {
           className='opacity-90 mb-7'
         />
         <div className=' flex flex-col space-y-4'>
-          <Button variant={'outline'} className='py-6 border-2 flex space-x-3'>
+          <Button
+            disabled={isAuthenticated}
+            variant={'outline'}
+            className='py-6 border-2 flex space-x-3'
+            onClick={() => socialAuth('google')}
+          >
             <FcGoogle size={30} />
             <Typography
               text='Sign in with Google'
@@ -60,7 +84,12 @@ const AuthPage = () => {
               className='text-xl'
             />
           </Button>
-          <Button variant={'outline'} className='py-6 border-2 flex space-x-3'>
+          <Button
+            disabled={isAuthenticated}
+            variant={'outline'}
+            className='py-6 border-2 flex space-x-3'
+            onClick={() => socialAuth('github')}
+          >
             <RxGithubLogo size={30} />
             <Typography
               text='Sign in with Google'
@@ -78,7 +107,7 @@ const AuthPage = () => {
           {/* FORM */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-              <fieldset>
+              <fieldset disabled={isAuthenticated}>
                 <FormField
                   control={form.control}
                   name='email'
